@@ -19,6 +19,44 @@ vector<double> car_to_global(double x, double y, double ref_x, double ref_y, dou
     return {x_global, y_global};
 }
 
+
+int d_to_lane(double d) {
+    return floor(d / 4);
+}
+
+double lane_to_d(int lane) {
+    return lane*4+2;
+}
+
+
+struct action {
+    int lane;
+    double velocity;
+};
+
+// get the next action (lane and velocity)
+action next_action(vector<vector<double>> sensor_fusion,
+                           double car_s, int prev_size, int lane_mine, double velocity) {
+
+    for (int i = 0; i < sensor_fusion.size(); i++) {
+        int lane_other = d_to_lane(sensor_fusion[i][6]);
+        if (lane_other == lane_mine) {
+            double vx_other = sensor_fusion[i][3];
+            double vy_other = sensor_fusion[i][4];
+            double v_other = sqrt(vx_other*vx_other+vy_other*vy_other);
+
+            double s_other = sensor_fusion[i][5];
+            s_other += ((double)prev_size)*.02*v_other;
+            if (s_other > car_s && (s_other - car_s) < 30) {
+                velocity = 29.5;
+            }
+
+        }
+    }
+
+    return { lane_mine, velocity };
+}
+
 // interpolate using the spline and convert back to global coordinates.
 void interpolate_next_vals(vector<double> & next_x_vals, vector<double> &next_y_vals, tk::spline s,
                            int prev_size, double ref_x, double ref_y, double ref_yaw, double ref_vel) {
