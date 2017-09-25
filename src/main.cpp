@@ -14,6 +14,9 @@
 
 using namespace std;
 
+#include "helper.h"
+
+
 // for convenience
 using json = nlohmann::json;
 
@@ -199,8 +202,16 @@ int main() {
         map_waypoints_dy.push_back(d_y);
     }
 
-    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                                                                                                         uWS::OpCode opCode) {
+
+    // HMF
+    // Starting lane.
+    int lane = 1;
+    // Reference velocity.
+    double ref_vel = 49.5;
+
+
+    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy, &lane,&ref_vel]
+                (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
         // The 2 signifies a websocket event
@@ -243,16 +254,77 @@ int main() {
 
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-                    double dist_inc = 0.3;
-                    for (int i = 0; i < 50; i++) {
-                        double next_s = car_s + (i+1) * dist_inc;
-                        double next_d = 6; // middle lane 4*lane+4/2.
 
-                        vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                    // sparsed points for spline to fill.
+                    vector<double> ptsx;
+                    vector<double> ptsy;
 
-                        next_x_vals.push_back(xy[0]);
-                        next_y_vals.push_back(xy[1]);
+                    double ref_x = car_x;
+                    double ref_y = car_y;
+                    double ref_yaw = deg2rad(car_yaw);
+
+                    int prev_size = previous_path_x.size();
+
+                    if (prev_size < 2) {
+                        double prev_car_x = car_x - cos(car_yaw);
+                        double prev_car_y = car_y - sin(car_yaw);
+
+                        ptsx.push_back(prev_car_x);
+                        ptsx.push_back(car_x);
+
+                        ptsy.push_back(prev_car_y);
+                        ptsy.push_back(car_y);
+                    } else {
+                        ref_x = previous_path_x[prev_size - 1];
+                        ref_y = previous_path_y[prev_size - 1];
+
+                        double ref_x_prev = previous_path_x[prev_size - 2];
+                        double ref_y_prev = previous_path_y[prev_size - 2];
+
+                        ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+
+                        ptsx.push_back(ref_x_prev);
+                        ptsx.push_back(ref_x);
+
+                        ptsy.push_back(ref_y_prev);
+                        ptsy.push_back(ref_y);
                     }
+
+                    double next_d = lane*4+4/2;
+                    // cout << "car_s: " << car_s << ", d: " << next_d << endl;
+                    vector<double> xy_next0 = getXY(car_s + 60, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                    vector<double> xy_next1 = getXY(car_s + 75, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                    vector<double> xy_next2 = getXY(car_s + 90, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+                    ptsx.push_back(xy_next0[0]);
+                    ptsx.push_back(xy_next1[0]);
+                    ptsx.push_back(xy_next2[0]);
+
+                    ptsy.push_back(xy_next0[1]);
+                    ptsy.push_back(xy_next1[1]);
+                    ptsy.push_back(xy_next2[1]);
+
+                    // cout << "sparse points: " << ptsx.size() << endl;
+
+                    // change x,y to car reference 0,0
+                    for (int i = 0; i < ptsx.size(); i++) {
+                        vector<double> xycar = global_to_car(ptsx[i], ptsy[i], ref_x, ref_y, ref_yaw);
+                        ptsx[i] = xycar[0];
+                        ptsy[i] = xycar[1];
+                    }
+
+                    // fit the spline
+                    tk::spline s;
+                    s.set_points(ptsx, ptsy);
+
+                    for (int i = 0; i < prev_size; i++) {
+                        next_x_vals.push_back(previous_path_x[i]);
+                        next_y_vals.push_back(previous_path_y[i]);
+                    }
+
+                    interpolate_next_vals(next_x_vals, next_y_vals, s, prev_size, ref_x, ref_y, ref_yaw, ref_vel);
+
+                    // cout << " ---- " << endl;
 
                     // ends my code.
 
