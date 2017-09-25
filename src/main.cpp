@@ -262,6 +262,7 @@ int main() {
 
                     action a = next_action(sensor_fusion, car_s, prev_size, lane, ref_vel);
                     ref_vel = a.velocity;
+                    lane = a.lane;
 
                     // sparsed points for spline to fill.
                     vector<double> ptsx;

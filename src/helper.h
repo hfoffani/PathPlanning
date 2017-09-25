@@ -50,6 +50,8 @@ action next_action(vector<vector<double>> sensor_fusion,
             s_other += ((double)prev_size)*.02*v_other;
             if (s_other > car_s && (s_other - car_s) < 30) {
                 too_close = true;
+                if (lane_mine > 0)
+                    lane_mine = 0;
             }
         }
     }
