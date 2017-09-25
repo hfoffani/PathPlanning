@@ -298,10 +298,10 @@ int main() {
                         ptsy.push_back(ref_y);
                     }
 
-                    double next_d = lane*4+4/2;
+                    double next_d = lane_to_d(lane);
                     // cout << "car_s: " << car_s << ", d: " << next_d << endl;
-                    vector<double> xy_next0 = getXY(car_s + 60, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-                    vector<double> xy_next1 = getXY(car_s + 75, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                    vector<double> xy_next0 = getXY(car_s + 30, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+                    vector<double> xy_next1 = getXY(car_s + 60, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
                     vector<double> xy_next2 = getXY(car_s + 90, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
                     ptsx.push_back(xy_next0[0]);
