@@ -255,6 +255,11 @@ int main() {
 
                     // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
+                    int prev_size = previous_path_x.size();
+
+                    if (prev_size > 0)
+                        car_s = end_path_s;
+
                     // sparsed points for spline to fill.
                     vector<double> ptsx;
                     vector<double> ptsy;
@@ -263,7 +268,6 @@ int main() {
                     double ref_y = car_y;
                     double ref_yaw = deg2rad(car_yaw);
 
-                    int prev_size = previous_path_x.size();
 
                     if (prev_size < 2) {
                         double prev_car_x = car_x - cos(car_yaw);
