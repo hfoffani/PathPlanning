@@ -207,7 +207,7 @@ int main() {
     // Starting lane.
     int lane = 1;
     // Reference velocity.
-    double ref_vel = 49.5;
+    double ref_vel = 0;
 
 
     h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy, &lane,&ref_vel]

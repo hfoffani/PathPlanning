@@ -38,6 +38,7 @@ struct action {
 action next_action(vector<vector<double>> sensor_fusion,
                            double car_s, int prev_size, int lane_mine, double velocity) {
 
+    bool too_close = false;
     for (int i = 0; i < sensor_fusion.size(); i++) {
         int lane_other = d_to_lane(sensor_fusion[i][6]);
         if (lane_other == lane_mine) {
@@ -48,10 +49,15 @@ action next_action(vector<vector<double>> sensor_fusion,
             double s_other = sensor_fusion[i][5];
             s_other += ((double)prev_size)*.02*v_other;
             if (s_other > car_s && (s_other - car_s) < 30) {
-                velocity = 29.5;
+                too_close = true;
             }
-
         }
+    }
+
+    if (too_close) {
+        velocity -= .224; // 5m/s
+    } else if (velocity < 49.5) {
+        velocity += .224; // 5m/s
     }
 
     return { lane_mine, velocity };
