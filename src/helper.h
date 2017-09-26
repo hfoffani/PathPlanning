@@ -1,4 +1,5 @@
 
+
 vector<double> global_to_car(double x, double y, double ref_x, double ref_y, double ref_yaw) {
      double shift_x = x - ref_x;
      double shift_y = y - ref_y;
@@ -54,18 +55,65 @@ bool lane_is_busy(vector<vector<double>> sensor_fusion, int lane, int prev_size,
     return is_busy;
 }
 
-// get the next action (lane and velocity)
+
+#define KEEPLANE 0
+#define TURNLEFT 1
+#define TURNRIGHT 2
+
+double cost_KEEPLANE() {
+    return 0.5;
+}
+double cost_TURNLEFT() {
+    return 1;
+}
+double cost_TURNRIGHT() {
+    return 1;
+}
+
+typedef double (*cost_type)(void);
+
+cost_type cost_functions[] = {
+        cost_KEEPLANE,
+        cost_TURNLEFT,
+        cost_TURNRIGHT
+};
+
+int get_next_state(vector<vector<double>> sensor_fusion, double car_s, int prev_size, int lane_mine) {
+
+    int next_state = KEEPLANE;
+    double lowest_cost = -1;
+    for (int i = 0; i < 3; i++) {
+        double newcost = cost_functions[i]();
+        if (newcost < lowest_cost) {
+            lowest_cost = newcost;
+            next_state = i;
+        }
+    }
+    return next_state;
+}
+
+// get the next car action (lane and velocity)
 action next_action(vector<vector<double>> sensor_fusion,
-                           double car_s, int prev_size, int lane_mine, double velocity) {
+                       double car_s, int prev_size, int lane_mine, double velocity) {
 
-    bool too_close = lane_is_busy(sensor_fusion, lane_mine, prev_size, car_s);
-    if (too_close && lane_mine > 0)
-        lane_mine = 0;
+    bool too_close = false;
 
-    if (too_close) {
-        velocity -= .224; // 5m/s
-    } else if (velocity < 49.5) {
-        velocity += .224; // 5m/s
+    int next_state = get_next_state(sensor_fusion, lane_mine, prev_size, car_s);
+    switch (next_state) {
+        case KEEPLANE:
+            too_close = lane_is_busy(sensor_fusion, lane_mine, prev_size, car_s);
+            if (too_close) {
+                velocity -= .224; // 5m/s
+            } else if (velocity < 49.5) {
+                velocity += .224; // 5m/s
+            }
+            break;
+        case TURNRIGHT:
+            lane_mine += 1;
+            break;
+        case TURNLEFT:
+            lane_mine -= 1;
+            break;
     }
 
     return { lane_mine, velocity };
