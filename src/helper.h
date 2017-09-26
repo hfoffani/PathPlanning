@@ -34,14 +34,12 @@ struct action {
     double velocity;
 };
 
-// get the next action (lane and velocity)
-action next_action(vector<vector<double>> sensor_fusion,
-                           double car_s, int prev_size, int lane_mine, double velocity) {
 
-    bool too_close = false;
+bool lane_is_busy(vector<vector<double>> sensor_fusion, int lane, int prev_size, double car_s) {
+    bool is_busy = false;
     for (int i = 0; i < sensor_fusion.size(); i++) {
         int lane_other = d_to_lane(sensor_fusion[i][6]);
-        if (lane_other == lane_mine) {
+        if (lane_other == lane) {
             double vx_other = sensor_fusion[i][3];
             double vy_other = sensor_fusion[i][4];
             double v_other = sqrt(vx_other*vx_other+vy_other*vy_other);
@@ -49,12 +47,20 @@ action next_action(vector<vector<double>> sensor_fusion,
             double s_other = sensor_fusion[i][5];
             s_other += ((double)prev_size)*.02*v_other;
             if (s_other > car_s && (s_other - car_s) < 30) {
-                too_close = true;
-                if (lane_mine > 0)
-                    lane_mine = 0;
+                is_busy = true;
             }
         }
     }
+    return is_busy;
+}
+
+// get the next action (lane and velocity)
+action next_action(vector<vector<double>> sensor_fusion,
+                           double car_s, int prev_size, int lane_mine, double velocity) {
+
+    bool too_close = lane_is_busy(sensor_fusion, lane_mine, prev_size, car_s);
+    if (too_close && lane_mine > 0)
+        lane_mine = 0;
 
     if (too_close) {
         velocity -= .224; // 5m/s
