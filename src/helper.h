@@ -106,7 +106,7 @@ int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double ca
             next_state = i;
         }
     }
-    cout << endl;
+    // cout << endl;
     return next_state;
 }
 
