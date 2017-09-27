@@ -1,4 +1,6 @@
+#include "constants.h"
 
+using namespace std;
 
 vector<double> global_to_car(double x, double y, double ref_x, double ref_y, double ref_yaw) {
      double shift_x = x - ref_x;
@@ -22,11 +24,11 @@ vector<double> car_to_global(double x, double y, double ref_x, double ref_y, dou
 
 
 int d_to_lane(double d) {
-    return floor(d / 4);
+    return floor(d / LANEWIDTH);
 }
 
 double lane_to_d(int lane) {
-    return lane*4+2;
+    return lane*LANEWIDTH+LANEWIDTH/2;
 }
 
 
@@ -58,13 +60,10 @@ bool lane_is_busy(vector<vector<double>> sensor_fusion, int lane, double car_s, 
     return is_busy;
 }
 
-bool lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size) {
-    return lane_is_busy(sensor_fusion, lane, car_s, prev_size, 0, 30);
-}
 
-#define KEEPLANE 0
-#define TURNLEFT 1
-#define TURNRIGHT 2
+bool lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size) {
+    return lane_is_busy(sensor_fusion, lane, car_s, prev_size, BUSYAHEADMIN, BUSYAHEADMAX);
+}
 
 double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
@@ -75,14 +74,14 @@ double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double 
     double cost = 0;
     if (! busy_ahead) cost += .6;
     if (car_lane == 0) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, -20, 30)) cost += 1;
+    if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX)) cost += 1;
     return cost;
 }
 double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
     if (! busy_ahead) cost += .7;
     if (car_lane == 2) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, -20, 30)) cost += 1;
+    if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX)) cost += 1;
     return cost;
 }
 
@@ -122,9 +121,9 @@ action next_action(vector<vector<double>> sensor_fusion,
     switch (next_state) {
         case KEEPLANE:
             if (busy_ahead) {
-                velocity -= .224; // 5m/s
-            } else if (velocity < 49.5) {
-                velocity += .224; // 5m/s
+                velocity -= NOJERKACC;
+            } else if (velocity < MAXVELOCITY) {
+                velocity += NOJERKACC;
             }
             break;
         case TURNRIGHT:
@@ -142,15 +141,15 @@ action next_action(vector<vector<double>> sensor_fusion,
 void interpolate_next_vals(vector<double> & next_x_vals, vector<double> &next_y_vals, tk::spline s,
                            int prev_size, double ref_x, double ref_y, double ref_yaw, double ref_vel) {
     
-    double x_target = 30.0;
+    double x_target = SPLINESTEP;
     double y_target = s(x_target);
     double path = sqrt((x_target*x_target)  + (y_target*y_target));
     
     double x_addon = 0;
 
-    for (int k = 1; k < 50 - prev_size; ++k) {
+    for (int k = 1; k < PATHPOINTS - prev_size; ++k) {
         
-        double N = 2.24* path / (0.02 * ref_vel);
+        double N = path / (POINTSPEED * MPH2MS(ref_vel));
         double x_point = x_addon + (x_target/N);
         double y_point = s(x_point);
         
