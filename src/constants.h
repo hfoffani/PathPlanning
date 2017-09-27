@@ -21,7 +21,7 @@
 #define MPH2MS(x) (x/2.24)  // mph to m/s
 #define MS2MPH(x) (x*2.24)  // m/s to mph
 
-#define MAXVELOCITY 49.5
+#define MAXVELOCITY 49.70
 
 #define MAXVAL 100000.0
 
