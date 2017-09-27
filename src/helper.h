@@ -66,27 +66,27 @@ bool lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double c
 #define TURNLEFT 1
 #define TURNRIGHT 2
 
-double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size) {
+double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
-    if (lane_is_busy_ahead(sensor_fusion, car_lane, car_s, prev_size)) cost += .5;
+    if (busy_ahead) cost += .5;
     return cost;
 }
-double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size) {
+double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
-    if (! lane_is_busy_ahead(sensor_fusion, car_lane, car_s, prev_size)) cost += .7;
+    if (! busy_ahead) cost += .6;
     if (car_lane == 0) cost += 1;
     if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, -20, 30)) cost += 1;
     return cost;
 }
-double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size) {
+double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
-    if (! lane_is_busy_ahead(sensor_fusion, car_lane, car_s, prev_size)) cost += .7;
+    if (! busy_ahead) cost += .7;
     if (car_lane == 2) cost += 1;
     if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, -20, 30)) cost += 1;
     return cost;
 }
 
-typedef double (*cost_type)(vector<vector<double>>, int, double, int);
+typedef double (*cost_type)(vector<vector<double>>, int, double, int, bool);
 
 cost_type cost_functions[] = {
         cost_KEEPLANE,
@@ -94,12 +94,12 @@ cost_type cost_functions[] = {
         cost_TURNRIGHT
 };
 
-int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size) {
+int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
 
     int next_state = KEEPLANE;
     double lowest_cost = 10;
     for (int i = 0; i < 3; i++) {
-        double newcost = cost_functions[i](sensor_fusion, car_lane, car_s, prev_size);
+        double newcost = cost_functions[i](sensor_fusion, car_lane, car_s, prev_size, busy_ahead);
         // cout << "state: " << i << "  cost: " << newcost << " | ";
         if (newcost < lowest_cost) {
             lowest_cost = newcost;
@@ -114,10 +114,14 @@ int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double ca
 action next_action(vector<vector<double>> sensor_fusion,
                        double car_s, int prev_size, int lane_mine, double velocity) {
 
-    int next_state = get_next_state(sensor_fusion, lane_mine, car_s, prev_size);
+    // cache some processing
+    bool busy_ahead = lane_is_busy_ahead(sensor_fusion, lane_mine, car_s, prev_size);
+
+    int next_state = get_next_state(sensor_fusion, lane_mine, car_s, prev_size, busy_ahead);
+
     switch (next_state) {
         case KEEPLANE:
-            if ( lane_is_busy_ahead(sensor_fusion, lane_mine, car_s, prev_size) ) {
+            if (busy_ahead) {
                 velocity -= .224; // 5m/s
             } else if (velocity < 49.5) {
                 velocity += .224; // 5m/s
