@@ -38,9 +38,14 @@ struct action {
 };
 
 
-bool lane_is_busy(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size,
+// returns the speed of the nearest car in the specified lane in a given space.
+// returns MAXVAL if there is no other car there.
+double lane_is_busy(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size,
                   double dist_behind, double dist_ahead) {
-    bool is_busy = false;
+
+    double min_dist = MAXVAL;
+    double speed_next = MAXVAL;
+
     for (int i = 0; i < sensor_fusion.size(); i++) {
         int lane_other = d_to_lane(sensor_fusion[i][6]);
         if (lane_other == lane) {
@@ -49,19 +54,28 @@ bool lane_is_busy(vector<vector<double>> sensor_fusion, int lane, double car_s, 
             double v_other = sqrt(vx_other*vx_other+vy_other*vy_other);
 
             double s_other = sensor_fusion[i][5];
-            s_other += ((double)prev_size)*.02*v_other;
+            s_other += ((double)prev_size)*POINTSPEED*v_other;
 
             double distance = s_other - car_s;
+            double other_speed = MS2MPH(v_other);
+
             if (distance > dist_behind && distance < dist_ahead) {
-                is_busy = true;
+                if (min_dist > abs(distance)) {
+                    min_dist = abs(distance);
+                    speed_next = other_speed;
+                }
             }
         }
     }
-    return is_busy;
+    // if (min_dist < MAXVAL)
+    //     cout << "lane: " << lane << " | speed: " << speed_next << ", dist: " << min_dist << endl;
+    return speed_next;
 }
 
 
-bool lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size) {
+// returns the speed of the nearest car ahead.
+// returns MAXVAL if there is no other car.
+double lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double car_s, int prev_size) {
     return lane_is_busy(sensor_fusion, lane, car_s, prev_size, BUSYAHEADMIN, BUSYAHEADMAX);
 }
 
@@ -74,14 +88,14 @@ double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double 
     double cost = 0;
     if (! busy_ahead) cost += .6;
     if (car_lane == 0) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX)) cost += 1;
+    if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL) cost += 1;
     return cost;
 }
 double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
     if (! busy_ahead) cost += .7;
     if (car_lane == 2) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX)) cost += 1;
+    if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL) cost += 1;
     return cost;
 }
 
@@ -111,16 +125,19 @@ int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double ca
 
 // get the next car action (lane and velocity)
 action next_action(vector<vector<double>> sensor_fusion,
-                       double car_s, int prev_size, int lane_mine, double velocity) {
+                   double car_s, int prev_size, int lane_mine, double velocity) {
 
     // cache some processing
-    bool busy_ahead = lane_is_busy_ahead(sensor_fusion, lane_mine, car_s, prev_size);
+    double speed_ahead = lane_is_busy_ahead(sensor_fusion, lane_mine, car_s, prev_size);
+    bool busy_ahead = speed_ahead < MAXVAL;
 
+    // FSM
     int next_state = get_next_state(sensor_fusion, lane_mine, car_s, prev_size, busy_ahead);
 
     switch (next_state) {
         case KEEPLANE:
-            if (busy_ahead) {
+            if (busy_ahead && velocity > (speed_ahead * SAFETYMARGIN)) {
+                // match the speed of car ahead
                 velocity -= NOJERKACC;
             } else if (velocity < MAXVELOCITY) {
                 velocity += NOJERKACC;
