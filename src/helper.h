@@ -84,7 +84,7 @@ double lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double
 }
 
 // cost for keeping the same lane.
-double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
+double cost_KEEP_LANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
     if (busy_ahead) cost += .4;         // penalty to keep lane if there's a car ahead.
     if (car_lane != 1) cost += .3;      // prefer center lane.
@@ -92,7 +92,7 @@ double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double 
 }
 
 // cost for changing to the lane at the left.
-double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
+double cost_LANE_CHANGE_LEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0.1;                  // basic penalty for turning
     if (car_lane == 0) cost += 1;       // don't go left if in leftmost lane
     bool lbusy = lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL;
@@ -101,7 +101,7 @@ double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double 
 }
 
 // cost for changing to the lane at the right.
-double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
+double cost_LANE_CHANGE_RIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0.2;                  // basic penalty for turning right. prefers overtake through the left.
     if (car_lane == 2) cost += 1;       // don't go left if in right-most lane
     bool lbusy = lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL;
@@ -112,20 +112,20 @@ double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double
 typedef double (*cost_type)(vector<vector<double>>, int, double, int, bool);
 
 cost_type cost_functions[] = {
-        cost_KEEPLANE,
-        cost_TURNLEFT,
-        cost_TURNRIGHT
+        cost_KEEP_LANE,
+        cost_LANE_CHANGE_LEFT,
+        cost_LANE_CHANGE_RIGHT
 };
 
 string state_name(int state) {
-    string names[] = { "KEEP LANE", "TURN LEFT", "TURN RIGHT" };
+    string names[] = { "KEEP LANE", "LANE CHANGE LEFT", "LANE CHANGE RIGHT" };
     return names[state];
 }
 
 // Simple Finite State Machine.
 int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
 
-    int next_state = KEEPLANE;
+    int next_state = KEEP_LANE;
     double lowest_cost = 10;
     for (int i = 0; i < 3; i++) {
         double newcost = cost_functions[i](sensor_fusion, car_lane, car_s, prev_size, busy_ahead);
@@ -151,7 +151,7 @@ action next_action(vector<vector<double>> sensor_fusion,
     int next_state = get_next_state(sensor_fusion, lane_mine, car_s, prev_size, busy_ahead);
 
     switch (next_state) {
-        case KEEPLANE:
+        case KEEP_LANE:
             if (busy_ahead && velocity > (speed_ahead * SAFETYMARGIN)) {
                 // match the speed of car ahead
                 velocity -= NOJERKACC;
@@ -159,10 +159,10 @@ action next_action(vector<vector<double>> sensor_fusion,
                 velocity += NOJERKACC;
             }
             break;
-        case TURNRIGHT:
+        case LANE_CHANGE_RIGHT:
             lane_mine += 1;
             break;
-        case TURNLEFT:
+        case LANE_CHANGE_LEFT:
             lane_mine -= 1;
             break;
     }

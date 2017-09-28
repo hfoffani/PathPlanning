@@ -1,8 +1,8 @@
 #define SPLINESTEP 30
 
-#define KEEPLANE 0
-#define TURNLEFT 1
-#define TURNRIGHT 2
+#define KEEP_LANE 0
+#define LANE_CHANGE_LEFT 1
+#define LANE_CHANGE_RIGHT 2
 
 #define LANEWIDTH 4
 
