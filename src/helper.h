@@ -86,24 +86,26 @@ double lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double
 // cost for keeping the same lane.
 double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
-    if (busy_ahead) cost += .4;
-    if (car_lane != 1) cost += .3;
+    if (busy_ahead) cost += .4;         // penalty to keep lane if there's a car ahead.
+    if (car_lane != 1) cost += .3;      // prefer center lane.
     return cost;
 }
 
 // cost for changing to the lane at the left.
 double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
-    double cost = 0.1;
-    if (car_lane == 0) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL) cost += 1;
+    double cost = 0.1;                  // basic penalty for turning
+    if (car_lane == 0) cost += 1;       // don't go left if in leftmost lane
+    bool lbusy = lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL;
+    if (lbusy) cost += 1;               // don't turn left if occupied
     return cost;
 }
 
 // cost for changing to the lane at the right.
 double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
-    double cost = 0.2;
-    if (car_lane == 2) cost += 1;
-    if (lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL) cost += 1;
+    double cost = 0.2;                  // basic penalty for turning right. prefers overtake through the left.
+    if (car_lane == 2) cost += 1;       // don't go left if in right-most lane
+    bool lbusy = lane_is_busy(sensor_fusion, car_lane+1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL;
+    if (lbusy) cost += 1;               // don't turn right if occupied
     return cost;
 }
 
