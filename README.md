@@ -2,66 +2,49 @@
 
 A C++ implementation of a path planner for self-driving cars.
 
-
 This project implements a Path Planner to safely navigate a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit.
 It uses the Udacity simulator which is available in [Github](https://github.com/udacity/self-driving-car-sim/releases).
 
 
 ### The Model
 
+The model consists in two main parts. The Behavior Planning and the Trajectory Generation,
+
+#### Behavior Planning
+
+The Behavior Planning is implemented using a simple Finite State Machine with three states:
+`KEEP_LANE`, `LANE_CHANGE_LEFT`, `LANE_CHANGE_RIGHT`.
+
+The manouver preferences are tuned using a cost function for each action.
+
+1. If the lane is free ahead it prefers to stay in it.
+1. If the lane is busy try to see if the closest lanes are free.
+1. Only overtake if there is space to gain in the new lane.
+1. Prefer the left lane over the right lane to overtake a car.
+1. Do not turn left/right if the car is in the left-most/right-most lane.
+1. Prefer the middle lane over the left and right lanes.
+
+If the car cannot change lanes because they are busy, try to mimic the current
+velocity of the car ahead keeping a safe distance.
+
+The output of this step is the lane and the speed that the car should target.
 
 
+#### Trajectory Generation
 
----
+With the next optimal lane and speed the process generates a trajectory
+that smoothly respects the highway map and the desired action.
 
-        constants.h:#define POINTSPEED 0.02             // car moves to a new waypoint every 20ms
-        constants.h:#define NOJERKACC (0.224*1.5)       // 7.5m/s
-        constants.h:#define SAFETYMARGIN .9             // car ahead speed limit befere braking
-        constants.h:#define MPH2MS(x) (x/2.24)          // mph to m/s
-        constants.h:#define MS2MPH(x) (x*2.24)          // m/s to mph
-        helper.h:// convert coordinates from global to car (the car is always at 0,0).
-        helper.h:// convert car coordinates to global.
-        helper.h:// represents the action to take.
-        helper.h:// data is used for trajectory design.
-        helper.h:// returns the speed of the nearest car in the specified lane in a given space.
-        helper.h:// returns MAXVAL if there is no other car there.
-        helper.h:    // if (min_dist < MAXVAL)
-        helper.h:    //     cout << "lane: " << lane << " | speed: " << speed_next << ", dist: " << min_dist << endl;
-        helper.h:// returns the speed of the nearest car ahead.
-        helper.h:// returns MAXVAL if there is no other car.
-        helper.h:// cost for keeping the same lane.
-        helper.h:    if (busy_ahead) cost += .4;         // penalty to keep lane if there's a car ahead.
-        helper.h:    if (car_lane != 1) cost += .3;      // prefer center lane.
-        helper.h:// cost for changing to the lane at the left.
-        helper.h:    double cost = 0.1;                  // basic penalty for turning
-        helper.h:    if (car_lane == 0) cost += 1;       // don't go left if in leftmost lane
-        helper.h:    if (lbusy) cost += 1;               // don't turn left if occupied
-        helper.h:// cost for changing to the lane at the right.
-        helper.h:    double cost = 0.2;                  // basic penalty for turning right. prefers overtake through the left.
-        helper.h:    if (car_lane == 2) cost += 1;       // don't go left if in right-most lane
-        helper.h:    if (lbusy) cost += 1;               // don't turn right if occupied
-        helper.h:// Simple Finite State Machine.
-        helper.h:        // cout << "state: " << state_name(i) << "  cost: " << newcost << " | ";
-        helper.h:    // cout << endl;
-        helper.h:// get the next car action (lane and velocity)
-        helper.h:    // cache some processing
-        helper.h:    // FSM
-        helper.h:                // match the speed of car ahead
-        helper.h:// interpolate using the spline and convert back to global coordinates.
-        main.cpp:                    // obtain the next action for the ego car. (the best lane and velocity)
-        main.cpp:                    // sparsed points for spline to fill.
-        main.cpp:                    // get the two previous points consumed by the car so the trajectory for
-        main.cpp:                    // the future path fits more smoothly.
-        main.cpp:                    // three future points sparsed SPLINESPTEP distance between them.
-        main.cpp:                    // cout << "car_s: " << car_s << ", d: " << next_d << endl;
-        main.cpp:                    // cout << "sparse points: " << ptsx.size() << endl;
-        main.cpp:                    // change x,y to car reference 0,0
-        main.cpp:                    // fit a spline with the given five points
-        main.cpp:                    // interpolate all the required values from the spline, convert them to global coordinates
-        main.cpp:                    // and put them into the next_x_vals and next_y_vals vectors.
-        main.cpp:                    // cout << " ---- " << endl;
-        main.cpp:                    // ends my code.
----
+Using geometry from the map waypoints data, the current position of the
+car and the desired destination I create 3 points spread along the next 90mts.
+These three points plus two more from the previous trajectory conforms
+the input dataset.
+
+A spline algorithm fed by the input dataset provides a function that allows
+us to interpolate the rest of the points spread by 20ms each.
+
+The interpolated points are converted to global coordinates before sending
+them to the simulator.
 
 
 ---
