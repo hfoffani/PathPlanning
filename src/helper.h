@@ -2,6 +2,7 @@
 
 using namespace std;
 
+// convert coordinates from global to car (the car is always at 0,0).
 vector<double> global_to_car(double x, double y, double ref_x, double ref_y, double ref_yaw) {
      double shift_x = x - ref_x;
      double shift_y = y - ref_y;
@@ -12,6 +13,7 @@ vector<double> global_to_car(double x, double y, double ref_x, double ref_y, dou
      return {x_car, y_car};
 }
 
+// convert car coordinates to global.
 vector<double> car_to_global(double x, double y, double ref_x, double ref_y, double ref_yaw) {
      double x_global = x * cos(ref_yaw) - y * sin(ref_yaw);
      double y_global = x * sin(ref_yaw) + y * cos(ref_yaw);
@@ -32,6 +34,8 @@ double lane_to_d(int lane) {
 }
 
 
+// represents the action to take.
+// data is used for trajectory design.
 struct action {
     int lane;
     double velocity;
@@ -79,18 +83,23 @@ double lane_is_busy_ahead(vector<vector<double>> sensor_fusion, int lane, double
     return lane_is_busy(sensor_fusion, lane, car_s, prev_size, BUSYAHEADMIN, BUSYAHEADMAX);
 }
 
+// cost for keeping the same lane.
 double cost_KEEPLANE(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0;
     if (busy_ahead) cost += .4;
     if (car_lane != 1) cost += .3;
     return cost;
 }
+
+// cost for changing to the lane at the left.
 double cost_TURNLEFT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0.1;
     if (car_lane == 0) cost += 1;
     if (lane_is_busy(sensor_fusion, car_lane-1, car_s, prev_size, BUSYCHANGEMIN, BUSYCHANGEMAX) < MAXVAL) cost += 1;
     return cost;
 }
+
+// cost for changing to the lane at the right.
 double cost_TURNRIGHT(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
     double cost = 0.2;
     if (car_lane == 2) cost += 1;
@@ -111,6 +120,7 @@ string state_name(int state) {
     return names[state];
 }
 
+// Simple Finite State Machine.
 int get_next_state(vector<vector<double>> sensor_fusion, int car_lane, double car_s, int prev_size, bool busy_ahead) {
 
     int next_state = KEEPLANE;
