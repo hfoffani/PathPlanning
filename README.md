@@ -18,7 +18,7 @@ The Behavior Planning is implemented using a simple Finite State Machine with th
 The maneuver preferences are tuned using a cost function for each action.
 
 1. If the lane is free ahead, it prefers to stay in it.
-1. If the lane is busy try to see if the closest ones are free.
+1. If it is not, see if the closest ones are free before considering passing.
 1. Only overtake if there is space to gain in the new lane.
 1. Prefer the left lane over the right lane to overtake a car.
 1. Do not turn left/right if the vehicle is in the left-most/right-most lane.
