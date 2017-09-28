@@ -3,7 +3,7 @@
 A C++ implementation of a path planner for self-driving cars.
 
 This project implements a Path Planner to safely navigate a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit.
-It uses the Udacity simulator which is available in [Github](https://github.com/udacity/self-driving-car-sim/releases).
+It uses the Udacity simulator which is available on [Github](https://github.com/udacity/self-driving-car-sim/releases).
 
 
 ### The Model
@@ -15,10 +15,10 @@ The model consists in two main parts. The Behavior Planning and the Trajectory G
 The Behavior Planning is implemented using a simple Finite State Machine with three states:
 `KEEP_LANE`, `LANE_CHANGE_LEFT`, `LANE_CHANGE_RIGHT`.
 
-The manouver preferences are tuned using a cost function for each action.
+The manoeuvre preferences are tuned using a cost function for each action.
 
-1. If the lane is free ahead it prefers to stay in it.
-1. If the lane is busy try to see if the closest lanes are free.
+1. If the lane is free, ahead it prefers to stay in it.
+1. If the lane is busy try to see if the closest ones are free.
 1. Only overtake if there is space to gain in the new lane.
 1. Prefer the left lane over the right lane to overtake a car.
 1. Do not turn left/right if the car is in the left-most/right-most lane.
@@ -32,11 +32,11 @@ The output of this step is the lane and the speed that the car should target.
 
 #### Trajectory Generation
 
-With the next optimal lane and speed the process generates a trajectory
+With the next optimal lane and speed the process generates a path
 that smoothly respects the highway map and the desired action.
 
 Using geometry from the map waypoints data, the current position of the
-car and the desired destination I create 3 points spread along the next 90mts.
+car and the target destination I create 3 points spread along the next 90mts.
 These three points plus two more from the previous trajectory conforms
 the input dataset.
 
