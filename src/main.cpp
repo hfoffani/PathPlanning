@@ -253,13 +253,14 @@ int main() {
                     vector<double> next_y_vals;
 
 
-                    // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+                    // define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
                     int prev_size = previous_path_x.size();
 
                     if (prev_size > 0)
                         car_s = end_path_s;
 
+                    // obtain the next action for the ego car. (the best lane and velocity)
                     action a = next_action(sensor_fusion, car_s, prev_size, lane, ref_vel);
                     ref_vel = a.velocity;
                     lane = a.lane;
@@ -272,7 +273,8 @@ int main() {
                     double ref_y = car_y;
                     double ref_yaw = deg2rad(car_yaw);
 
-
+                    // get the two previous points consumed by the car so the trajectory for
+                    // the future path fits more smoothly.
                     if (prev_size < 2) {
                         double prev_car_x = car_x - cos(car_yaw);
                         double prev_car_y = car_y - sin(car_yaw);
@@ -298,6 +300,7 @@ int main() {
                         ptsy.push_back(ref_y);
                     }
 
+                    // three future points sparsed SPLINESPTEP distance between them.
                     double next_d = lane_to_d(lane);
                     // cout << "car_s: " << car_s << ", d: " << next_d << endl;
                     vector<double> xy_next0 = getXY(car_s + SPLINESTEP*1, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -321,7 +324,7 @@ int main() {
                         ptsy[i] = xycar[1];
                     }
 
-                    // fit the spline
+                    // fit a spline with the given five points
                     tk::spline s;
                     s.set_points(ptsx, ptsy);
 
@@ -330,6 +333,8 @@ int main() {
                         next_y_vals.push_back(previous_path_y[i]);
                     }
 
+                    // interpolate all the required values from the spline, convert them to global coordinates
+                    // and put them into the next_x_vals and next_y_vals vectors.
                     interpolate_next_vals(next_x_vals, next_y_vals, s, prev_size, ref_x, ref_y, ref_yaw, ref_vel);
 
                     // cout << " ---- " << endl;
