@@ -8,20 +8,20 @@ It uses the Udacity simulator which is available on [Github](https://github.com/
 
 ### The Model
 
-The model consists in two main parts. The Behavior Planning and the Trajectory Generation,
+The model consists of two main parts. The Behavior Planning and the Trajectory Generation,
 
 #### Behavior Planning
 
 The Behavior Planning is implemented using a simple Finite State Machine with three states:
 `KEEP_LANE`, `LANE_CHANGE_LEFT`, `LANE_CHANGE_RIGHT`.
 
-The manoeuvre preferences are tuned using a cost function for each action.
+The maneuver preferences are tuned using a cost function for each action.
 
-1. If the lane is free, ahead it prefers to stay in it.
+1. If the lane is free ahead, it prefers to stay in it.
 1. If the lane is busy try to see if the closest ones are free.
 1. Only overtake if there is space to gain in the new lane.
 1. Prefer the left lane over the right lane to overtake a car.
-1. Do not turn left/right if the car is in the left-most/right-most lane.
+1. Do not turn left/right if the vehicle is in the left-most/right-most lane.
 1. Prefer the middle lane over the left and right lanes.
 
 If the car cannot change lanes because they are busy, try to mimic the current
@@ -32,7 +32,7 @@ The output of this step is the lane and the speed that the car should target.
 
 #### Trajectory Generation
 
-With the next optimal lane and speed the process generates a path
+With the next optimal lane and speed, the process generates a path
 that smoothly respects the highway map and the desired action.
 
 Using geometry from the map waypoints data, the current position of the
